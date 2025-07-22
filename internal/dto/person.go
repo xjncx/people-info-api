@@ -4,7 +4,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// Request структуры
 type CreatePersonRequest struct {
 	FirstName  string `json:"first_name"`
 	LastName   string `json:"last_name"`
@@ -19,7 +18,6 @@ type PersonResponse struct {
 	Age         int       `json:"age"`
 	Gender      string    `json:"gender"`
 	Nationality string    `json:"nationality"`
-	//    Emails      []EmailResponse `json:"emails,omitempty"`
 }
 
 type PersonListResponse struct {

@@ -1,41 +1,52 @@
 package api
 
 import (
-	"encoding/json"
-	"log"
 	"net/http"
+
+	"github.com/labstack/echo/v4"
+	"github.com/xjncx/people-info-api/internal/dto"
 )
 
-func (h *Handler) GetPeopleHandler(w http.ResponseWriter, r *http.Request) {
-	lastName := r.URL.Query().Get("last_name")
+func (h *Handler) CreatePerson(c echo.Context) error {
+	var req dto.CreatePersonRequest
 
-	if lastName == "" {
-		http.Error(w, "missing last_name query param", http.StatusBadRequest)
-		return
+	if err := c.Bind(&req); err != nil {
+		logger.Log.Info("Decode error: %v", err)
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
 
-	// TODO: передать в сервис и получить []Person
-
-	log.Printf("Search people by last name: %s", lastName)
-
-	// TODO: временная заглушка
-	people := []any{
-		map[string]any{
-			"first_name":  "Иван",
-			"last_name":   "Иванов",
-			"middle_name": "Петрович",
-			"age":         34,
-			"gender":      "male",
-			"nationality": "RU",
-		},
+	if req.FirstName == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "first_name is required")
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(people)
+	person := toPersonModel(req)
+
+	if err := h.PersonService.CreatePerson(c.Request().Context(), person); err != nil {
+		logger.Log.Info("Failed to create person: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create person")
+	}
+
+	response := toPersonResponse(person)
+
+	return c.JSON(http.StatusCreated, response)
 }
 
-func writeJSON(w http.ResponseWriter, status int, data any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(data)
+func (h *Handler) FindByLastName(c echo.Context) error {
+	lastName := c.QueryParam("last_name")
+
+	if lastName == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "last_name parameter is required")
+	}
+
+	persons, err := h.PersonService.FindByLastName(c.Request().Context(), lastName)
+	if err != nil {
+		logger.Log.Info("Failed to find persons: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fetch persons")
+	}
+
+	response := dto.PersonListResponse{
+		People: toPersonResponses(persons),
+	}
+
+	return c.JSON(http.StatusOK, response)
 }

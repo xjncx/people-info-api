@@ -1,23 +1,18 @@
 package api
 
 import (
-	"net/http"
-
-	"github.com/go-chi/chi/v5"
+	"github.com/labstack/echo/v4"
 )
 
-func NewRouter(handler *Handler) http.Handler {
+func NewRouter(handler *Handler) *echo.Echo {
+	e := echo.New()
 
-	r := chi.NewRouter()
+	// Группа для /people
+	people := e.Group("/people")
+	people.Use(LoggingMiddleware)
 
-	r.Route("/people", func(r chi.Router) {
+	people.GET("", handler.FindByLastName)
+	people.POST("", handler.CreatePerson)
 
-		r.Get("/", handler.GetPeopleHandler)
-
-		//r.Post("/", handler.CreateTask)
-		//r.Get("/{id}", handler.GetTask)
-		//r.Delete("/{id}", handler.DeleteTask)
-	})
-
-	return r
+	return e
 }

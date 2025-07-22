@@ -1,24 +1,56 @@
-package m
+package main
 
 import (
-	"log"
-	"net/http"
+	"github.com/xjncx/people-info-api/pkg/logger"
 
 	"github.com/xjncx/people-info-api/internal/api"
+	"github.com/xjncx/people-info-api/internal/client"
+	"github.com/xjncx/people-info-api/internal/config"
+	"github.com/xjncx/people-info-api/internal/repository/pg"
 	"github.com/xjncx/people-info-api/internal/service"
 )
 
 func main() {
-	// Пока сервис с nil (заглушка)
 
-	var repo service.PersonRepository // пока nil
-	service := service.NewPersonService(repo)
-	handler := &api.Handler{PersonService: service}
+	cfg, err := config.Load()
+	if err != nil {
+		logger.logger.Log.Fatal("Failed to load config: %v", err)
+	}
 
-	r := api.NewRouter(handler)
+	if err := logger.Init(); err != nil {
+		logger.logger.Log.Fatal("Failed to initialize logger: %v", err)
+	}
+	defer logger.Sync()
 
-	log.Println("Starting server on :8080")
-	if err := http.ListenAndServe(":8080", r); err != nil {
-		log.Fatal(err)
+	logger.Log.Info("Logger initialized")
+
+	db, err := pg.NewDB(cfg)
+
+	if err != nil {
+		logger.Log.Fatal("Failed to connect to database:", err)
+	}
+	defer db.Close()
+	logger.Log.Info("Connected to database")
+
+	repo := pg.NewPersonRepository(db)
+
+	agifyClient := client.NewAgifyClient(cfg)
+	genderizeClient := client.NewGenderizeClient(cfg)
+	nationalizeClient := client.NewNationalizeClient(cfg)
+
+	personService := service.NewPersonService(
+		repo,
+		agifyClient,
+		genderizeClient,
+		nationalizeClient,
+	)
+
+	handler := &api.Handler{PersonService: personService}
+	e := api.NewRouter(handler)
+
+	serverAddr := ":" + cfg.ServerPort
+	logger.Log.Info("Starting server on %s", serverAddr)
+	if err := e.Start(serverAddr); err != nil {
+		logger.Log.Fatal(err)
 	}
 }
