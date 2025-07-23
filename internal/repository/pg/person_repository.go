@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jmoiron/sqlx" //выбрал sqlx для тестового, про sqrl знаю
 	"github.com/xjncx/people-info-api/internal/model"
 )
 
@@ -45,7 +45,7 @@ func (r *PersonRepository) FindByLastName(ctx context.Context, lastName string) 
 
 	query := `
         SELECT id, first_name, last_name, age, gender, nationality 
-        FROM persons 
+        FROM people 
         WHERE last_name = $1
     `
 	rows, err := r.db.QueryContext(ctx, query, lastName)
@@ -65,28 +65,3 @@ func (r *PersonRepository) FindByLastName(ctx context.Context, lastName string) 
 
 	return people, nil
 }
-
-// func (r *PersonRepository) List(ctx context.Context) ([]model.Person, error) {
-// 	var people []model.Person
-
-// 	query := `
-//         SELECT id, first_name, last_name, middle_name, age, gender, nationality
-//         FROM people
-//         ORDER BY created_at DESC
-//     `
-
-// 	err := r.db.SelectContext(ctx, &people, query)
-// 	return people, err
-// }
-
-// func (r *PersonRepository) Update(ctx context.Context, person *model.Person) error {
-// 	query := `
-//         UPDATE people
-//         SET first_name = :first_name, last_name = :last_name,
-//             middle_name = :middle_name, age = :age,
-//             gender = :gender, nationality = :nationality
-//         WHERE id = :id
-//     `
-// 	_, err := r.db.NamedExecContext(ctx, query, person)
-// 	return err
-// }

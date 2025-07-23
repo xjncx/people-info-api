@@ -2,49 +2,42 @@ package config
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
+	DBHost     string `mapstructure:"DB_HOST"`
+	DBPort     string `mapstructure:"DB_PORT"`
+	DBUser     string `mapstructure:"DB_USER"`
+	DBPassword string `mapstructure:"DB_PASSWORD"`
+	DBName     string `mapstructure:"DB_NAME"`
 
-	ServerPort string
+	ServerPort string `mapstructure:"SERVER_PORT"`
 
-	AgifyURL       string
-	GenderizeURL   string
-	NationalizeURL string
+	AgifyURL       string `mapstructure:"AGIFY_URL"`
+	GenderizeURL   string `mapstructure:"GENDERIZE_URL"`
+	NationalizeURL string `mapstructure:"NATIONALIZE_URL"`
 
-	HTTPTimeout         time.Duration
-	HTTPMaxIdleConns    int
-	HTTPIdleConnTimeout time.Duration
+	HTTPTimeout         time.Duration `mapstructure:"HTTP_TIMEOUT"`
+	HTTPMaxIdleConns    int           `mapstructure:"HTTP_MAX_IDLE_CONNS"`
+	HTTPIdleConnTimeout time.Duration `mapstructure:"HTTP_IDLE_CONN_TIMEOUT"`
 
-	Environment string
+	Environment string `mapstructure:"ENV"`
 }
 
 func Load() (*Config, error) {
 	viper.SetConfigFile(".env")
 	viper.SetConfigType("env")
 
-	if err := viper.ReadInConfig(); err != nil && !os.IsNotExist(err) {
-		return nil, fmt.Errorf("error reading config file: %w", err)
-	}
-
-	viper.AutomaticEnv()
-
 	viper.SetDefault("DB_HOST", "localhost")
 	viper.SetDefault("DB_PORT", "5432")
-	viper.SetDefault("DB_USER", "user")
-	viper.SetDefault("DB_PASSWORD", "password")
+	viper.SetDefault("DB_USER", "postgres")
+	viper.SetDefault("DB_PASSWORD", "postgres")
 	viper.SetDefault("DB_NAME", "people_db")
 
-	viper.SetDefault("SERVER_PORT", "8081")
+	viper.SetDefault("SERVER_PORT", "8080")
 
 	viper.SetDefault("AGIFY_URL", "https://api.agify.io")
 	viper.SetDefault("GENDERIZE_URL", "https://api.genderize.io")
@@ -56,22 +49,29 @@ func Load() (*Config, error) {
 
 	viper.SetDefault("ENV", "development")
 
-	var cfg Config
-	if err := viper.Unmarshal(&cfg); err != nil {
-		return nil, fmt.Errorf("unable to decode into struct: %w", err)
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return nil, fmt.Errorf("error reading .env file: %w", err)
+		}
 	}
 
-	httpTimeout, err := time.ParseDuration(viper.GetString("HTTP_TIMEOUT"))
+	viper.AutomaticEnv()
+
+	var cfg Config
+	if err := viper.Unmarshal(&cfg); err != nil {
+		return nil, fmt.Errorf("unable to decode config: %w", err)
+	}
+
+	var err error
+	cfg.HTTPTimeout, err = time.ParseDuration(viper.GetString("HTTP_TIMEOUT"))
 	if err != nil {
 		return nil, fmt.Errorf("invalid HTTP_TIMEOUT: %w", err)
 	}
-	cfg.HTTPTimeout = httpTimeout
 
-	httpIdleTimeout, err := time.ParseDuration(viper.GetString("HTTP_IDLE_CONN_TIMEOUT"))
+	cfg.HTTPIdleConnTimeout, err = time.ParseDuration(viper.GetString("HTTP_IDLE_CONN_TIMEOUT"))
 	if err != nil {
 		return nil, fmt.Errorf("invalid HTTP_IDLE_CONN_TIMEOUT: %w", err)
 	}
-	cfg.HTTPIdleConnTimeout = httpIdleTimeout
 
 	return &cfg, nil
 }

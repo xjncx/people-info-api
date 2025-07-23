@@ -2,11 +2,15 @@ package client
 
 import (
 	"context"
-
-	"github.com/xjncx/people-info-api/internal/model"
 )
 
+type EnrichmentData struct {
+	Age         *int
+	Gender      *string
+	Nationality *string
+}
+
 type EnrichmentClient interface {
-	Enrich(ctx context.Context, name string, person *model.Person) error
+	Enrich(ctx context.Context, name string) (*EnrichmentData, error)
 	Name() string
 }

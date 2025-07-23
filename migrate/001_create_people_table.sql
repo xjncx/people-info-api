@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS people (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     first_name VARCHAR(255) NOT NULL,
@@ -11,3 +12,7 @@ CREATE TABLE IF NOT EXISTS people (
 );
 
 CREATE INDEX idx_people_last_name ON people(last_name);
+
+-- +goose Down
+DROP INDEX IF EXISTS idx_people_last_name;
+DROP TABLE IF EXISTS people;

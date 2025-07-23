@@ -1,11 +1,12 @@
 package dto
 
-type ErrorResponse struct {
-	Error   string            `json:"error"`
-	Code    string            `json:"code,omitempty"`
-	Details map[string]string `json:"details,omitempty"`
+type SuccessResponse[T any] struct {
+	Success bool `json:"success"`
+	Data    T    `json:"data"`
 }
 
-type SuccessResponse struct {
-	Message string `json:"message"`
+type ErrorResponse struct {
+	Success bool              `json:"success"`
+	Error   string            `json:"error"`
+	Details map[string]string `json:"details,omitempty"`
 }

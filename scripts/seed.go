@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"log"
 
 	"github.com/xjncx/people-info-api/internal/client"
 	"github.com/xjncx/people-info-api/internal/config"
 	"github.com/xjncx/people-info-api/internal/model"
 	"github.com/xjncx/people-info-api/internal/repository/pg"
 	"github.com/xjncx/people-info-api/internal/service"
+	"github.com/xjncx/people-info-api/pkg/logger"
+	"go.uber.org/zap"
 )
 
 var seedData = []struct {
@@ -25,22 +28,27 @@ var seedData = []struct {
 	{"Anna", "Morozova", "Nikolaevna"},
 	{"Mikhail", "Volkov", "Dmitrievich"},
 	{"Natalia", "Fedorova", "Igorevna"},
+	{"Petr", "Fedorov", "Igorevich"},
 }
 
 func main() {
+	if err := logger.Init(); err != nil {
+		log.Fatalf("Logger init failed: %v", err)
+	}
+	defer logger.Sync()
 	cfg, err := config.Load()
 	if err != nil {
-		logger.logger.Log.Fatal("Failed to load config: %v", err)
+		logger.Log.Fatal("Config load failed", zap.Error(err))
 	}
 
 	db, err := pg.NewDB(cfg)
 
 	if err != nil {
-		logger.Log.Fatal("Failed to connect to database:", err)
+		logger.Log.Fatal("DB connection failed", zap.Error(err))
 	}
 	defer db.Close()
-	logger.Log.Info("Connected to database")
 
+	ctx := context.Background()
 	repo := pg.NewPersonRepository(db)
 
 	agifyClient := client.NewAgifyClient(cfg)
@@ -54,8 +62,6 @@ func main() {
 		nationalizeClient,
 	)
 
-	ctx := context.Background()
-
 	for _, data := range seedData {
 		person := &model.Person{
 			FirstName:  data.FirstName,
@@ -63,13 +69,10 @@ func main() {
 			MiddleName: data.MiddleName,
 		}
 
-		if err := svc.CreatePerson(ctx, person); err != nil {
-			logger.Log.Info("Failed to create %s %s: %v", data.FirstName, data.LastName, err)
+		if err := svc.EnrichPerson(ctx, person); err != nil {
 			continue
 		}
 
-		logger.Log.Info("Created: %s %s (age: %d, gender: %s, nationality: %s)",
-			person.FirstName, person.LastName, person.Age, person.Gender, person.Nationality)
 	}
 
 	logger.Log.Info("Seeding completed!")

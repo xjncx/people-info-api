@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/xjncx/people-info-api/internal/config"
-	"github.com/xjncx/people-info-api/internal/model"
 )
 
 type AgifyClient struct {
@@ -60,13 +59,15 @@ func (c *AgifyClient) GetAge(ctx context.Context, name string) (int, error) {
 	return result.Age, nil
 }
 
-func (c *AgifyClient) Enrich(ctx context.Context, name string, person *model.Person) error {
+func (c *AgifyClient) Enrich(ctx context.Context, name string) (*EnrichmentData, error) {
 	age, err := c.GetAge(ctx, name)
 	if err != nil {
-		return fmt.Errorf("failed to get age from Agify: %w", err)
+		return nil, fmt.Errorf("failed to get age from Agify: %w", err)
 	}
-	person.Age = age
-	return nil
+
+	return &EnrichmentData{
+		Age: &age,
+	}, nil
 }
 
 func (c *AgifyClient) Name() string {

@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/xjncx/people-info-api/internal/config"
-	"github.com/xjncx/people-info-api/internal/model"
 )
 
 type GenderizeClient struct {
@@ -60,13 +59,15 @@ func (c *GenderizeClient) GetGender(ctx context.Context, name string) (string, e
 	return result.Gender, nil
 }
 
-func (c *GenderizeClient) Enrich(ctx context.Context, name string, person *model.Person) error {
-	g, err := c.GetGender(ctx, name)
+func (c *GenderizeClient) Enrich(ctx context.Context, name string) (*EnrichmentData, error) {
+	gender, err := c.GetGender(ctx, name)
 	if err != nil {
-		return fmt.Errorf("failed to get age from Genderize: %w", err)
+		return nil, fmt.Errorf("failed to get gender from Genderize: %w", err)
 	}
-	person.Gender = g
-	return nil
+
+	return &EnrichmentData{
+		Gender: &gender,
+	}, nil
 }
 
 func (c *GenderizeClient) Name() string {

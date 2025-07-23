@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/xjncx/people-info-api/internal/config"
-	"github.com/xjncx/people-info-api/internal/model"
 )
 
 type NationalizeClient struct {
@@ -79,13 +78,15 @@ func (c *NationalizeClient) GetNationality(ctx context.Context, name string) (st
 
 }
 
-func (c *NationalizeClient) Enrich(ctx context.Context, name string, person *model.Person) error {
-	n, err := c.GetNationality(ctx, name)
+func (c *NationalizeClient) Enrich(ctx context.Context, name string) (*EnrichmentData, error) {
+	nationality, err := c.GetNationality(ctx, name)
 	if err != nil {
-		return fmt.Errorf("failed to get age from Agify: %w", err)
+		return nil, fmt.Errorf("failed to get nationality from Nationalize: %w", err)
 	}
-	person.Nationality = n
-	return nil
+
+	return &EnrichmentData{
+		Nationality: &nationality,
+	}, nil
 }
 
 func (c *NationalizeClient) Name() string {
